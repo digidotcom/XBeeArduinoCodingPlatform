@@ -1,0 +1,51 @@
+apply plugin: 'java'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+}
+
+sourceCompatibility = 1.6
+
+compileJava {
+    doFirst {
+        // Add Processing core libraries to classpath, if possible.
+        if (System.getenv('PROCESSING_INSTALL_DIR') != null) {
+            classpath = project.sourceSets.main.compileClasspath + files(System.getenv('PROCESSING_INSTALL_DIR') + '/core/library/core.jar')
+        } else {
+            logger.warn("Warning: No PROCESSING_INSTALL_DIR environment variable found. Compilation will fail unless core.jar is on your classpath!\n")
+        }
+    }
+}
+
+task makeProcessingLibrary(type: Copy, dependsOn: jar) {
+    description "Compile the Java code for this library, and output a nearly-ready Processing library"
+
+    destinationDir = new File("$project.buildDir/processing-lib/xbeegamecontroller")
+
+    doFirst {
+        destinationDir.mkdirs()
+    }
+
+    from (project.projectDir) {
+        include 'library.properties'
+    }
+    into ("library") {
+        from ("libs") {
+            // We need xbjlib to build the xbeegamecontroller JAR file, but we
+            // need to exclude it from the Processing library.
+            exclude 'xbjlib*.jar'
+        }
+        from jar.destinationDir
+    }
+    into ("src") {
+        from "src"
+    }
+}
